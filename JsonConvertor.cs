@@ -1,10 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 /*
  * TODO : GetDataByName with enum
@@ -411,6 +408,60 @@ namespace PacMan
                 if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
                 {
                     return DataTransformation.ChangeTypeOfMultidimentionalArray<T>(jsonData.Data);
+                }
+                else
+                {
+                    throw new ArgumentNullException("The data was not found");
+                }
+            }
+
+            /// <summary>
+            /// here we try to get the data and transform it to an enum
+            /// </summary>
+            /// <typeparam name="Enum">the enum</typeparam>
+            /// <param name="name">the name of the data</param>
+            /// <returns>the enum you want</returns>
+            public Enum GetDataEnum<Enum>(string name)
+            {
+                if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
+                {
+                    return DataTransformation.StringToEnum<Enum>(jsonData.Data);
+                }
+                else
+                {
+                    throw new ArgumentNullException("The data was not found");
+                }
+            }
+
+            /// <summary>
+            /// here we try to get the data array and transform it to an enum
+            /// </summary>
+            /// <typeparam name="Enum">the enum</typeparam>
+            /// <param name="name">the name of the data</param>
+            /// <returns>the enum array</returns>
+            public Enum[] GetDataEnumArray<Enum>(string name)
+            {
+                if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
+                {
+                    return DataTransformation.StringArrayToEnum<Enum>(jsonData.Data);
+                }
+                else
+                {
+                    throw new ArgumentNullException("The data was not found");
+                }
+            }
+
+            /// <summary>
+            /// here we try to get the multidimentiona data array and transform it to an enum
+            /// </summary>
+            /// <typeparam name="Enum">the enum</typeparam>
+            /// <param name="name">the name of the data</param>
+            /// <returns></returns>
+            public Enum[,] GetDataEnumMultidimentionalArray<Enum>(string name)
+            {
+                if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
+                {
+                    return DataTransformation.StringMultidimentionalArrayToEnum<Enum>(jsonData.Data);
                 }
                 else
                 {
@@ -1241,7 +1292,10 @@ namespace PacMan
                                 this._data = null;
                                 this._array = null;
                                 this._multiArray = null;
-                                this._jsonNode.Dispose();
+                                if (this._jsonNode != null)
+                                {
+                                    this._jsonNode.Dispose();
+                                }
                                 this._rank = int.MinValue;
                                 this._type = null;
                             }
@@ -1277,7 +1331,6 @@ namespace PacMan
                         {
                             this._name = null;
                             this._data.Dispose();
-                            _numberInfoParseNumberWithPoint = null;
                         }
 
                         _disposedValue = true;
