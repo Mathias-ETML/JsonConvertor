@@ -4,9 +4,6 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 
 /*
- * TODO : GetDataByName with enum
- * TODO : \char to check that its a char that we are checking and not a \char
- * TODO : IDisposable
  * TODO : Automatic data processing ( hard )
  */
 namespace PacMan
@@ -19,7 +16,7 @@ namespace PacMan
     {
         /* Exemple of how to use the json convertor
          ** 
-         *  JsonConvertor jsonConvertor = new JsonConvertor(Properties.Resources.map);
+         *  JsonConvertor jsonConvertor = new JsonConvertor(Properties.Resources.map, new string[1] {"test"});
          *  jsonConvertor.TryCreateElementByName("map");
          *
          *  if (jsonConvertor.TryGetElementByName("map", out JsonConvertor.JsonNode jsonNode))
@@ -43,12 +40,12 @@ namespace PacMan
          *          }
          *      }
          *  }
-         *  if (jsonConvertor.TryCreateElementByName("test1", out JsonConvertor.JsonNode test))
-         *  {
-         *      float v = test.GetDataByName<float>("test13");
-         *      double[] vs = test.GetDataArrayByName<double>("test11");
-         *      decimal[,] vss = test.GetDataMultidimentionalArrayByName<decimal>("test12");
-         *  }
+         *      
+         *  JsonConvertor.JsonNode test = jsonConvertor.GetElementByName("test");    
+         *      
+         *  float v = test.GetDataByName<float>("test13");
+         *  double[] vs = test.GetDataArrayByName<double>("test11");
+         *  decimal[,] vss = test.GetDataMultidimentionalArrayByName<decimal>("test12");
          */
 
         #region attributs
@@ -76,10 +73,52 @@ namespace PacMan
         /// <param name="jsonFile">the data of the json file, raw</param>
         public JsonConvertor(string jsonFileData)
         {
+            if (jsonFileData == null)
+            {
+                throw new ArgumentNullException("jsonFileData");
+            }
+
             this._rawData = jsonFileData;
             this._jsonNodesList = new List<JsonNode>();
             this._jsonNodesNamesList = new List<string>();
             this._jsonNodesNamesDico = new Dictionary<string, JsonNode>();
+        }
+
+        /// <summary>
+        /// custom constructor
+        /// </summary>
+        /// <param name="jsonFileData">the data of the json file, raw</param>
+        /// <param name="nodes">the nodes you want to create</param>
+        /// <param name="showError">show argument excpetion</param>
+        public JsonConvertor(string jsonFileData, string[] nodes = null, bool showError = false)
+        {
+            if (jsonFileData == null)
+            {
+                throw new ArgumentNullException("jsonFileData");
+            }
+
+            if (nodes == null)
+            {
+                throw new ArgumentNullException("nodes");
+            }
+
+            this._rawData = jsonFileData;
+            this._jsonNodesList = new List<JsonNode>();
+            this._jsonNodesNamesList = new List<string>();
+            this._jsonNodesNamesDico = new Dictionary<string, JsonNode>();
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (nodes[i] == null)
+                {
+                    throw new ArgumentException($"A null string was at position {i}");
+                }
+
+                if (!TryCreateElementByName(nodes[i]) && showError)
+                {
+                    throw new ArgumentException($"A json node was note created with the name of {nodes[i]} at position {i}");
+                }
+            }
         }
 
         /// <summary>
@@ -111,12 +150,22 @@ namespace PacMan
         /// <returns>if the node was created</returns>
         public bool TryCreateElementByName(string elementName)
         {
+            if (elementName == null)
+            {
+                throw new ArgumentNullException("elementName");
+            }
+
             if (_rawData.Contains($"\"{elementName}\""))
             {
+                if (_jsonNodesNamesList.Contains(elementName))
+                {
+                    throw new ArgumentException($"Node {elementName} was allready created");
+                }
+
                 // we remove the {} at the start and the end
                 if(CleanedData(_rawData.Substring(1, _rawData.Length - 1), elementName, out string cleanedData))
                 {
-                    JsonNode jsonNode = new JsonNode(cleanedData, $"\"{elementName}\"");
+                    JsonNode jsonNode = new JsonNode(elementName, cleanedData);
                     this._jsonNodesList.Add(jsonNode);
                     this._jsonNodesNamesDico.Add(elementName, jsonNode);
                     this._jsonNodesNamesList.Add(elementName);
@@ -129,7 +178,6 @@ namespace PacMan
                 }
 
             }
-
             return false;
         }
 
@@ -138,14 +186,65 @@ namespace PacMan
         /// </summary>
         /// <param name="elementName">the id of the object</param>
         /// <returns>if the node was created</returns>
-        public bool TryCreateElementByName(string elementName, out JsonNode jsonNode)
+        public bool CreateElementByName(string elementName)
         {
+            if (elementName == null)
+            {
+                throw new ArgumentNullException("elementName");
+            }
+
             if (_rawData.Contains($"\"{elementName}\""))
             {
+                if (_jsonNodesNamesList.Contains(elementName))
+                {
+                    throw new ArgumentException($"Node {elementName} was allready created");
+                }
+
                 // we remove the {} at the start and the end
                 if (CleanedData(_rawData.Substring(1, _rawData.Length - 1), elementName, out string cleanedData))
                 {
-                    jsonNode = new JsonNode(cleanedData, $"\"{elementName}\"");
+                    JsonNode jsonNode = new JsonNode(elementName, cleanedData);
+                    this._jsonNodesList.Add(jsonNode);
+                    this._jsonNodesNamesDico.Add(elementName, jsonNode);
+                    this._jsonNodesNamesList.Add(elementName);
+                    return true;
+                }
+                else
+                {
+                    throw new ArgumentNullException("Error in JSON convertor :" +
+                        $"object \"{elementName}\" was found but not returned proprely, a null was returned");
+                }
+
+            }
+            else
+            {
+                throw new ArgumentException($"The JSON file doesn't contain the node \"{elementName}\"");
+            }
+            
+        }
+        /// <summary>
+        /// This will create a new "node", how i like to call it, of data, it will take evrything from the id of the json file
+        /// </summary>
+        /// <param name="elementName">the id of the object</param>
+        /// <returns>if the node was created</returns>
+        public bool TryCreateElementByName(string elementName, out JsonNode jsonNode)
+        {
+            if (elementName == null)
+            {
+                throw new ArgumentNullException("elementName");
+            }
+
+            if (_rawData.Contains($"\"{elementName}\""))
+            {
+                if (_jsonNodesNamesList.Contains(elementName))
+                {
+                    throw new ArgumentException($"Node {elementName} was allready created");
+                }
+
+                // we remove the {} at the start and the end
+                if (CleanedData(_rawData.Substring(1, _rawData.Length - 1), elementName, out string cleanedData))
+                {
+                    jsonNode = new JsonNode(elementName, cleanedData);
                     this._jsonNodesList.Add(jsonNode);
                     this._jsonNodesNamesDico.Add(elementName, jsonNode);
                     this._jsonNodesNamesList.Add(elementName);
@@ -171,12 +270,373 @@ namespace PacMan
         /// <param name="data">the cleaned data</param>
         private void CreateElement(string name, string data)
         {
+            if (name == null)
+            {
+                throw new ArgumentNullException("name");
+            }
+
+            if (data == null)
+            {
+                throw new ArgumentNullException("data");
+            }
+
             JsonNode jsonNode = new JsonNode(name, $"\"{data}\"");
             this._jsonNodesList.Add(jsonNode);
             this._jsonNodesNamesDico.Add(data, jsonNode);
             this._jsonNodesNamesList.Add(data);
         }
         #endregion storing the data
+
+        #region getting the data
+        /// <summary>
+        /// Get you the data
+        /// </summary>
+        /// <param name="name">the name of the data</param>
+        /// <param name="jsonNode">the node it's in it/param>
+        /// <returns>the JsonNode</returns>
+        public bool TryGetElementByName(string name, out JsonNode jsonNode)
+        {
+            if (name == null)
+            {
+                throw new ArgumentNullException("name");
+            }
+
+            if (_jsonNodesNamesDico.TryGetValue(name, out jsonNode))
+            {
+                return true;
+            }
+            
+            return false;
+        }
+
+        /// <summary>
+        /// Get you the node you want
+        /// </summary>
+        /// <param name="name">the node you want</param>
+        /// <returns>the node</returns>
+        public JsonNode GetElementByName(string name)
+        {
+            if (name == null)
+            {
+                throw new ArgumentNullException("name");
+            }
+
+            if (_jsonNodesNamesDico.TryGetValue(name, out JsonNode jsonNode))
+            {
+                return jsonNode;
+            }
+            else
+            {
+                throw new ArgumentException($"The node {jsonNode} was not found");
+            }
+        }
+
+        /// <summary>
+        /// Get you the data
+        /// </summary>
+        /// <typeparam name="T">the type of your variable</typeparam>
+        /// <param name="jsonFileRawData">the json file</param>
+        /// <param name="jsonData">the name of the data</param>
+        /// <param name="jsonNode1">the main node of your file</param>
+        /// <param name="jsonNodes">if your data is in nodes that are in nodes</param>
+        /// <returns>the data with the type you want</returns>
+        public static T GetDataByJsonFile<T>(string jsonFileRawData, string jsonData, string jsonNode1, string[] jsonNodes = null)
+        {
+            if (jsonFileRawData == null)
+            {
+                throw new ArgumentNullException("jsonFileRawData");
+            }
+
+            if (jsonData == null)
+            {
+                throw new ArgumentNullException("jsonData");
+            }
+
+            if (jsonNode1 == null)
+            {
+                throw new ArgumentNullException("jsonNode1");
+            }
+
+            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            {
+                JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
+
+                if (jsonNodes != null)
+                {
+                    for (int i = 0; i < jsonNodes.Length; i++)
+                    {
+                        if (!jsonNode.TryGetObjectByName(jsonNodes[i], out jsonNode))
+                        {
+                            throw new ArgumentException($"Node {jsonNodes[i]} was not found");
+                        }
+                        // else it's working for you ! yay !
+                    }
+                }
+
+                return jsonNode.GetDataByName<T>(jsonData);
+            }
+            else
+            {
+                throw new ArgumentNullException("Error in JSON convertor :" +
+                    $"object \"{jsonNode1}\" was found but not returned proprely, a null was returned");
+            }
+        }
+
+        /// <summary>
+        /// Get you the array of data
+        /// </summary>
+        /// <typeparam name="T">the type of your variable</typeparam>
+        /// <param name="jsonFileRawData">the json file</param>
+        /// <param name="jsonData">the name of the data</param>
+        /// <param name="jsonNode1">the main node of your file</param>
+        /// <param name="jsonNodes">if your data is in nodes that are in nodes</param>
+        /// <returns>the data array with the type you want</returns>
+        public static T[] GetDataArrayByJsonFile<T>(string jsonFileRawData, string jsonData, string jsonNode1, string[] jsonNodes = null)
+        {
+            if (jsonFileRawData == null)
+            {
+                throw new ArgumentNullException("jsonFileRawData");
+            }
+
+            if (jsonData == null)
+            {
+                throw new ArgumentNullException("jsonData");
+            }
+
+            if (jsonNode1 == null)
+            {
+                throw new ArgumentNullException("jsonNode1");
+            }
+
+            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            {
+                JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
+
+                if (jsonNodes != null)
+                {
+                    for (int i = 0; i < jsonNodes.Length; i++)
+                    {
+                        if (!jsonNode.TryGetObjectByName(jsonNodes[i], out jsonNode))
+                        {
+                            throw new ArgumentException($"Node {jsonNodes[i]} was not found");
+                        }
+                        // else it's working for you ! yay !
+                    }
+                }
+
+                return jsonNode.GetDataArrayByName<T>(jsonData);
+            }
+            else
+            {
+                throw new ArgumentNullException("Error in JSON convertor :" +
+                    $"object \"{jsonNode1}\" was found but not returned proprely, a null was returned");
+            }
+        }
+
+        /// <summary>
+        /// Get you the multidimentional array of data
+        /// </summary>
+        /// <typeparam name="T">the type of your variable</typeparam>
+        /// <param name="jsonFileRawData">the json file</param>
+        /// <param name="jsonData">the name of the data</param>
+        /// <param name="jsonNode1">the main node of your file</param>
+        /// <param name="jsonNodes">if your data is in nodes that are in nodes</param>
+        /// <returns>the data multidimentional array with the type you want</returns>
+        public static T[,] GetDataMultidimentionalArrayByJsonFile<T>(string jsonFileRawData, string jsonData, string jsonNode1, string[] jsonNodes = null)
+        {
+            if (jsonFileRawData == null)
+            {
+                throw new ArgumentNullException("jsonFileRawData");
+            }
+
+            if (jsonData == null)
+            {
+                throw new ArgumentNullException("jsonData");
+            }
+
+            if (jsonNode1 == null)
+            {
+                throw new ArgumentNullException("jsonNode1");
+            }
+
+            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            {
+                JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
+
+                if (jsonNodes != null)
+                {
+                    for (int i = 0; i < jsonNodes.Length; i++)
+                    {
+                        if (!jsonNode.TryGetObjectByName(jsonNodes[i], out jsonNode))
+                        {
+                            throw new ArgumentException($"Node {jsonNodes[i]} was not found");
+                        }
+                        // else it's working for you ! yay !
+                    }
+                }
+
+                return jsonNode.GetDataMultidimentionalArrayByName<T>(jsonData);
+            }
+            else
+            {
+                throw new ArgumentNullException("Error in JSON convertor :" +
+                    $"object \"{jsonNode1}\" was found but not returned proprely, a null was returned");
+            }
+        }
+
+        /// <summary>
+        /// Get you the enum you want !
+        /// </summary>
+        /// <typeparam name="Enum">the enum</typeparam>
+        /// <param name="jsonFileRawData">the raw json file</param>
+        /// <param name="jsonData">the name of the data</param>
+        /// <param name="jsonNode1">the main node</param>
+        /// <param name="jsonNodes">the nodes that the data is in</param>
+        /// <returns>the enum you want</returns>
+        public static Enum GetDataEnumByJsonFile<Enum>(string jsonFileRawData, string jsonData, string jsonNode1, string[] jsonNodes = null)
+        {
+            if (jsonFileRawData == null)
+            {
+                throw new ArgumentNullException("jsonFileRawData");
+            }
+
+            if (jsonData == null)
+            {
+                throw new ArgumentNullException("jsonData");
+            }
+
+            if (jsonNode1 == null)
+            {
+                throw new ArgumentNullException("jsonNode1");
+            }
+
+            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            {
+                JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
+
+                if (jsonNodes != null)
+                {
+                    for (int i = 0; i < jsonNodes.Length; i++)
+                    {
+                        if (!jsonNode.TryGetObjectByName(jsonNodes[i], out jsonNode))
+                        {
+                            throw new ArgumentException($"Node {jsonNodes[i]} was not found");
+                        }
+                        // else it's working for you ! yay !
+                    }
+                }
+
+                return jsonNode.GetDataEnum<Enum>(jsonData);
+            }
+            else
+            {
+                throw new ArgumentNullException("Error in JSON convertor :" +
+                    $"object \"{jsonNode1}\" was found but not returned proprely, a null was returned");
+            }
+        }
+
+        /// <summary>
+        /// Get you the array of enum you want !
+        /// </summary>
+        /// <typeparam name="Enum">the enum</typeparam>
+        /// <param name="jsonFileRawData">the raw json file</param>
+        /// <param name="jsonData">the name of the data</param>
+        /// <param name="jsonNode1">the main node</param>
+        /// <param name="jsonNodes">the nodes that the data is in</param>
+        /// <returns>the array of enum you want</returns>
+        public static Enum[] GetDataEnumArrayByJsonFile<Enum>(string jsonFileRawData, string jsonData, string jsonNode1, string[] jsonNodes = null)
+        {
+            if (jsonFileRawData == null)
+            {
+                throw new ArgumentNullException("jsonFileRawData");
+            }
+
+            if (jsonData == null)
+            {
+                throw new ArgumentNullException("jsonData");
+            }
+
+            if (jsonNode1 == null)
+            {
+                throw new ArgumentNullException("jsonNode1");
+            }
+
+            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            {
+                JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
+
+                if (jsonNodes != null)
+                {
+                    for (int i = 0; i < jsonNodes.Length; i++)
+                    {
+                        if (!jsonNode.TryGetObjectByName(jsonNodes[i], out jsonNode))
+                        {
+                            throw new ArgumentException($"Node {jsonNodes[i]} was not found");
+                        }
+                        // else it's working for you ! yay !
+                    }
+                }
+
+                return jsonNode.GetDataEnumArray<Enum>(jsonData);
+            }
+            else
+            {
+                throw new ArgumentNullException("Error in JSON convertor :" +
+                    $"object \"{jsonNode1}\" was found but not returned proprely, a null was returned");
+            }
+        }
+
+        /// <summary>
+        /// Get you the multidimentional array of enum you want !
+        /// </summary>
+        /// <typeparam name="Enum">the enum</typeparam>
+        /// <param name="jsonFileRawData">the raw json file</param>
+        /// <param name="jsonData">the name of the data</param>
+        /// <param name="jsonNode1">the main node</param>
+        /// <param name="jsonNodes">the nodes that the data is in</param>
+        /// <returns>the array of enum you want</returns>
+        public static Enum[,] GetDataEnumMultidimentionalArrayByJsonFile<Enum>(string jsonFileRawData, string jsonData, string jsonNode1, string[] jsonNodes = null)
+        {
+            if (jsonFileRawData == null)
+            {
+                throw new ArgumentNullException("jsonFileRawData");
+            }
+
+            if (jsonData == null)
+            {
+                throw new ArgumentNullException("jsonData");
+            }
+
+            if (jsonNode1 == null)
+            {
+                throw new ArgumentNullException("jsonNode1");
+            }
+
+            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            {
+                JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
+
+                if (jsonNodes != null)
+                {
+                    for (int i = 0; i < jsonNodes.Length; i++)
+                    {
+                        if (!jsonNode.TryGetObjectByName(jsonNodes[i], out jsonNode))
+                        {
+                            throw new ArgumentException($"Node {jsonNodes[i]} was not found");
+                        }
+                        // else it's working for you ! yay !
+                    }
+                }
+
+                return jsonNode.GetDataEnumMultidimentionalArray<Enum>(jsonData);
+            }
+            else
+            {
+                throw new ArgumentNullException("Error in JSON convertor :" +
+                    $"object \"{jsonNode1}\" was found but not returned proprely, a null was returned");
+            }
+        }
+        #endregion getting the data
 
         #region data processing
         /// <summary>
@@ -186,7 +646,7 @@ namespace PacMan
         /// <param name="id">the name ob the object</param>
         /// <param name="buffer">the output</param>
         /// <returns>if the retrive was sucessfull</returns>
-        private bool CleanedData(string data, string id, out string buffer)
+        private static bool CleanedData(string data, string id, out string buffer)
         {
             #region var
             data = data.Replace(Environment.NewLine, string.Empty);
@@ -259,18 +719,6 @@ namespace PacMan
         }
         #endregion data processing
 
-        #region getting the data
-        public bool TryGetElementByName(string name, out JsonNode jsonNode)
-        {
-            if (_jsonNodesNamesDico.TryGetValue(name, out jsonNode))
-            {
-                return true;
-            }
-            
-            return false;
-        }
-        #endregion getting the data
-
         #region JsonNode class
         /// <summary>
         /// Json node class
@@ -309,8 +757,18 @@ namespace PacMan
             /// </summary>
             /// <param name="data">the data of the original json file</param>
             /// <param name="id">the id of the object</param>
-            public JsonNode(string data, string name)
+            public JsonNode(string name, string data)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
+                if (data == null)
+                {
+                    throw new ArgumentNullException("data");
+                }
+
                 this._rawData = data;
                 this._name = name;
                 this._jsonDatasList = new List<JsonData>();
@@ -335,6 +793,11 @@ namespace PacMan
             /// <returns>if the object was found</returns>
             public bool TryGetDataByName(string name, out JsonData jsonData)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 if (_jsonDataNamesDico.TryGetValue(name, out jsonData))
                 {
                     return true;
@@ -351,6 +814,11 @@ namespace PacMan
             /// <returns>if the object was found, else throw a null excpetion</returns>
             public JsonData GetDataByName(string name)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
                 {
                     return jsonData;
@@ -369,6 +837,11 @@ namespace PacMan
             /// <returns>if the object was found, else throw a null excpetion</returns>
             public T GetDataByName<T>(string name)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
                 {
                     return DataTransformation.ChangeType<T>(jsonData.Data);
@@ -387,6 +860,11 @@ namespace PacMan
             /// <returns>if the object was found, else throw a null excpetion</returns>
             public T[] GetDataArrayByName<T>(string name)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
                 {
                     return DataTransformation.ChangeTypeOfArray<T>(jsonData.Data);
@@ -405,6 +883,11 @@ namespace PacMan
             /// <returns>if the object was found, else throw a null excpetion</returns>
             public T[,] GetDataMultidimentionalArrayByName<T>(string name)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
                 {
                     return DataTransformation.ChangeTypeOfMultidimentionalArray<T>(jsonData.Data);
@@ -423,6 +906,11 @@ namespace PacMan
             /// <returns>the enum you want</returns>
             public Enum GetDataEnum<Enum>(string name)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
                 {
                     return DataTransformation.StringToEnum<Enum>(jsonData.Data);
@@ -441,6 +929,11 @@ namespace PacMan
             /// <returns>the enum array</returns>
             public Enum[] GetDataEnumArray<Enum>(string name)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
                 {
                     return DataTransformation.StringArrayToEnum<Enum>(jsonData.Data);
@@ -459,6 +952,11 @@ namespace PacMan
             /// <returns></returns>
             public Enum[,] GetDataEnumMultidimentionalArray<Enum>(string name)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 if (_jsonDataNamesDico.TryGetValue(name, out JsonData jsonData))
                 {
                     return DataTransformation.StringMultidimentionalArrayToEnum<Enum>(jsonData.Data);
@@ -479,6 +977,11 @@ namespace PacMan
             /// <returns>if the object was found</returns>
             public bool TryGetObjectByName(string name, out JsonNode jsonNode)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 if (_jsonNodesNamesDico.TryGetValue(name, out jsonNode))
                 {
                     return true;
@@ -495,6 +998,11 @@ namespace PacMan
             /// <returns>if the object was found, else throw a null excpetion</returns>
             public JsonNode GetObjectByName(string name)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 if (_jsonNodesNamesDico.TryGetValue(name, out JsonNode jsonNode))
                 {
                     return jsonNode;
@@ -516,8 +1024,8 @@ namespace PacMan
             {
                 #region var
 
-                // removing the name
-                string buffer = _rawData.Substring(_name.Length, _rawData.Length - _name.Length);
+                // removing the name with ""
+                string buffer = _rawData.Substring(_name.Length + 2, _rawData.Length - _name.Length - 2);
 
                 // removing the :[{}] that make this an object
                 buffer = buffer.Substring(3, buffer.Length - 5);
@@ -735,6 +1243,16 @@ namespace PacMan
             /// <param name="data">the object data</param>
             private void CreateDataHolder(string name, string data)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
+                if (data == null)
+                {
+                    throw new ArgumentNullException("data");
+                }
+
                 // creating the data holder
                 JsonData jsonData = new JsonData(name, data);
                 this._jsonDatasList.Add(jsonData);
@@ -749,6 +1267,16 @@ namespace PacMan
             /// <param name="data">the object data</param>
             private void CreateDataHolder(string name, string[] data)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
+                if (data == null)
+                {
+                    throw new ArgumentNullException("data");
+                }
+
                 // creating the data holder
                 JsonData jsonData = new JsonData(name, data);
                 this._jsonDatasList.Add(jsonData);
@@ -763,6 +1291,16 @@ namespace PacMan
             /// <param name="data">the object data</param>
             private void CreateDataHolder(string name, string[,] data)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
+                if (data == null)
+                {
+                    throw new ArgumentNullException("data");
+                }
+
                 // creating the data holder
                 JsonData jsonData = new JsonData(name, data);
                 this._jsonDatasList.Add(jsonData);
@@ -777,6 +1315,11 @@ namespace PacMan
             /// <param name="data">the object data</param>
             private void CreateObjectHolder(string name, JsonNode json)
             {
+                if (name == null)
+                {
+                    throw new ArgumentNullException("name");
+                }
+
                 // creating the data holder
                 JsonData jsonData = new JsonData(name, json);
                 this._jsonDatasList.Add(jsonData);
@@ -793,8 +1336,11 @@ namespace PacMan
             /// <returns>a string array</returns>
             private string[] ConvertDataToArray(string rawData)
             {
-                string[] buffer;
-                
+                if (rawData == null)
+                {
+                    throw new ArgumentNullException("rawData");
+                }
+
                 // removing the array starter
                 rawData = rawData.Replace("[", "");
                 rawData = rawData.Replace("]", "");
@@ -802,10 +1348,7 @@ namespace PacMan
                 // removing the ""
                 rawData = rawData.Replace("\"", "");
                 
-                // putting data into the array
-                buffer = rawData.Split(',');
-
-                return buffer;
+                return rawData.Split(',');
             }
 
             /// <summary>
@@ -815,6 +1358,11 @@ namespace PacMan
             /// <returns>a multidimentional string array</returns>
             private string[,] ConvertDataToMultidimentionalArray(string rawData)
             {
+                if (rawData == null)
+                {
+                    throw new ArgumentNullException("rawData");
+                }
+
                 List<string[]> buffer = new List<string[]>();
                 string[] dataBuffer;
 
@@ -879,6 +1427,16 @@ namespace PacMan
                 /// <param name="data">the data of the id</param>
                 public JsonData(string name, string data)
                 {
+                    if (name == null)
+                    {
+                        throw new ArgumentNullException("name");
+                    }
+
+                    if (data == null)
+                    {
+                        throw new ArgumentNullException("data");
+                    }
+
                     this._name = name;
                     this._data = new Information(data);
                 }
@@ -890,6 +1448,16 @@ namespace PacMan
                 /// <param name="data">the data of the id</param>
                 public JsonData(string name, string[] data)
                 {
+                    if (name == null)
+                    {
+                        throw new ArgumentNullException("name");
+                    }
+
+                    if (data == null)
+                    {
+                        throw new ArgumentNullException("data");
+                    }
+
                     this._name = name;
                     this._data = new Information(data);
                 }
@@ -901,6 +1469,16 @@ namespace PacMan
                 /// <param name="data">the data of the id</param>
                 public JsonData(string name, string[,] data)
                 {
+                    if (name == null)
+                    {
+                        throw new ArgumentNullException("name");
+                    }
+
+                    if (data == null)
+                    {
+                        throw new ArgumentNullException("data");
+                    }
+
                     this._name = name;
                     this._data = new Information(data);
                 }
@@ -912,6 +1490,16 @@ namespace PacMan
                 /// <param name="data">the data of the id</param>
                 public JsonData(string name, JsonNode data)
                 {
+                    if (name == null)
+                    {
+                        throw new ArgumentNullException("name");
+                    }
+
+                    if (data == null)
+                    {
+                        throw new ArgumentNullException("data");
+                    }
+
                     this._name = name;
                     this._data = new Information(data);
                 }
