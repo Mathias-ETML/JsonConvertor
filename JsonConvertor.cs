@@ -1,3 +1,14 @@
+// ==++==
+// 
+//  Made by Mathias Rogey.
+//
+//  Published on https://github.com/Mathias-ETML/JsonConvertor
+//  with the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007.
+//
+//  Source code must been available when the software is ditributed.
+// 
+// ==--==
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -6,7 +17,7 @@ using System.Text.RegularExpressions;
 /*
  * TODO : Automatic data processing ( hard )
  */
-namespace PacMan
+namespace JsonFileConvertor
 {
     #region JsonConvertor class
     /// <summary>
@@ -739,7 +750,7 @@ namespace PacMan
 
             private Dictionary<string, JsonNode> _jsonNodesNamesDico;
             private List<string> _jsonNodesNamesList;
-            private bool _disposedValue = false; // Pour détecter les appels redondants
+            private bool _disposedValue = false;
             #endregion Attributs
 
             #region Propriety
@@ -800,11 +811,13 @@ namespace PacMan
 
                 if (_jsonDataNamesDico.TryGetValue(name, out jsonData))
                 {
+                    
                     return true;
                 }
 
                 return false;
             }
+            
 
             /// <summary>
             /// here we try to get the data
@@ -1399,15 +1412,14 @@ namespace PacMan
             /// </summary>
             public class JsonData : IDisposable
             {
-                #region Attributs
+                #region Attributs   
                 /// <summary>
                 /// Atributs
                 /// </summary>
                 private string _name;
                 private Information _data;
-                private static NumberFormatInfo _numberInfoParseNumberWithPoint = CultureInfo.InvariantCulture.NumberFormat;
+                private static readonly NumberFormatInfo _numberInfoParseNumberWithPoint = CultureInfo.InvariantCulture.NumberFormat;
                 private bool _disposedValue = false;
-
                 #endregion Attributs
 
                 #region Proprieties
@@ -1518,9 +1530,8 @@ namespace PacMan
                     private string _data;
                     private string[] _array;
                     private string[,] _multiArray;
-                    private JsonNode _jsonNode;
+                    private readonly JsonNode _jsonNode;
                     private int _rank;
-                    private System.Type _type;
                     private bool _disposedValue = false;
                     #endregion Attributs
 
@@ -1528,146 +1539,10 @@ namespace PacMan
                     /// <summary>
                     /// Proprieties
                     /// </summary>
-                    public System.Type Type { get => _type; }
                     public bool IsArray { get => _rank != -1; }
                     public int Rank { get => _rank; }
                     public JsonNode JsonNode { get => _jsonNode; }
                     #endregion Proprieties
-
-                    #region Type casting
-                    /// <summary>
-                    /// Implicit cast for int type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator int(Information data) => int.Parse(data._data);
-
-                    /// <summary>
-                    /// Implicit cast for long type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator long(Information data) => long.Parse(data._data);
-
-                    /// <summary>
-                    /// Implicit cast for ulong type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator ulong(Information data) => ulong.Parse(data._data);
-
-                    /// <summary>
-                    /// Implicit cast for float type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator float(Information data) => float.Parse(data._data, System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol);
-
-                    /// <summary>
-                    /// Implicit cast for double type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator double(Information data) => double.Parse(data._data, System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol);
-
-                    /// <summary>
-                    /// Implicit cast for decimal type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator decimal(Information data) => decimal.Parse(data._data, System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol);
-
-                    /// <summary>
-                    /// Implicit cast for strings
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator string(Information data) => data._data;
-
-                    #endregion Type casting
-
-                    #region Type array casting
-                    /// <summary>
-                    /// Implicit cast for int type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator int[](Information data) => Array.ConvertAll<string, int>(data._array, item => int.Parse(item));
-
-                    /// <summary>
-                    /// Implicit cast for long type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator long[] (Information data) => Array.ConvertAll<string, long>(data._array, item => long.Parse(item));
-
-                    /// <summary>
-                    /// Implicit cast for ulong type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator ulong[] (Information data) => Array.ConvertAll<string, ulong>(data._array, item => ulong.Parse(item));
-
-                    /// <summary>
-                    /// Implicit cast for flont type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator float[] (Information data) => Array.ConvertAll<string, float>(data._array, item => float.Parse(item, System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol));
-
-                    /// <summary>
-                    /// Implicit cast for flont type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator double[] (Information data) => Array.ConvertAll<string, double>(data._array, item => double.Parse(item, System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol));
-
-                    /// <summary>
-                    /// Implicit cast for flont type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator decimal[] (Information data) => Array.ConvertAll<string, decimal>(data._array, item => decimal.Parse(item, System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol));
-
-                    /// <summary>
-                    /// Implicit cast for strings
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator string[](Information data) => data._array;
-
-                    #endregion Type array casting
-
-                    #region Type 2d array casting
-                    /// <summary>
-                    /// Implicit cast for int type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator int[,] (Information data) => DataTransformation.ChangeTypeOfMultidimentionalArray<int>(data._multiArray);
-
-                    
-                    /// <summary>
-                    /// Implicit cast for long type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator long[,] (Information data) => DataTransformation.ChangeTypeOfMultidimentionalArray<long>(data._multiArray);
-
-                    /// <summary>
-                    /// Implicit cast for ulong type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator ulong[,] (Information data) => DataTransformation.ChangeTypeOfMultidimentionalArray<ulong>(data._multiArray);
-
-                    /// <summary>
-                    /// Implicit cast for flont type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator float[,] (Information data) => DataTransformation.ChangeTypeOfMultidimentionalArray<float>(data._multiArray);
-
-                    /// <summary>
-                    /// Implicit cast for flont type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator double[,] (Information data) => DataTransformation.ChangeTypeOfMultidimentionalArray<double>(data._multiArray);
-
-                    /// <summary>
-                    /// Implicit cast for flont type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator decimal[,] (Information data) => DataTransformation.ChangeTypeOfMultidimentionalArray<decimal>(data._multiArray);
-
-                    /// <summary>
-                    /// Implicit cast for flont type
-                    /// </summary>
-                    /// <param name="data">the data</param>
-                    public static implicit operator string[,] (Information data) => data._multiArray;
-                    #endregion Type 2d array casting
 
                     #region constructors
                     /// <summary>
@@ -1678,7 +1553,6 @@ namespace PacMan
                     {
                         this._data = data;
                         this._rank = -1;
-                        SetType();
                     }
 
                     /// <summary>
@@ -1688,12 +1562,7 @@ namespace PacMan
                     public Information(string[] array)
                     {
                         this._array = array;
-                        this._data = array[0].ToString();
                         this._rank = 0;
-                        SetType();
-
-                        // reset because we got the type
-                        this._data = null;
                     }
 
                     /// <summary>
@@ -1703,12 +1572,7 @@ namespace PacMan
                     public Information(string[,] array)
                     {
                         this._multiArray = array;
-                        this._data = array[0,0].ToString();
                         this._rank = 1;
-                        SetType();
-
-                        // reset because we got the type
-                        this._data = null;
                     }
 
                     /// <summary>
@@ -1719,68 +1583,19 @@ namespace PacMan
                     {
                         this._jsonNode = jsonNode;
                         this._rank = -1;
-                        this._type = typeof(JsonNode);
                     }
                     #endregion constructors
 
-                    #region Type setting
-                    /// <summary>
-                    /// We check what type the data is
-                    /// </summary>
-                    private void SetType()
-                    {
-                        if (Regex.IsMatch(_data, @"^[a-zA-Z]+$"))
-                        {
-                            this._type = typeof(string);
-                            return;
-                        }
-
-                        if (int.TryParse(_data, out _))
-                        {
-                            this._type = typeof(int);
-                            return;
-                        }
-
-                        // we put here the float check because its the most common type after the int ( i think )
-                        if (float.TryParse(_data, System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, null, out _))
-                        {
-                            this._type = typeof(float);
-                            return;
-                        }
-
-                        if (long.TryParse(_data, out _))
-                        {
-                            this._type = typeof(long);
-                            return;
-                        }
-
-                        if (ulong.TryParse(_data, out _))
-                        {
-                            this._type = typeof(long);
-                            return;
-                        }
-
-                        if (double.TryParse(_data, System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, null, out _))
-                        {
-                            this._type = typeof(double);
-                            return;
-                        }
-
-                        if (decimal.TryParse(_data, System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowCurrencySymbol, null, out _))
-                        {
-                            this._type = typeof(decimal);
-                            return;
-                        }
-
-                        // else this is the default type of data
-                        this._type = typeof(string);
-                    }
-                    #endregion Type setting
+                    #region implicit convertor
+                    public static implicit operator string(Information data) => data._data;
+                    public static implicit operator string[](Information data) => data._array;
+                    public static implicit operator string[,](Information data) => data._multiArray;
+                    #endregion implicit convertor
 
                     #region IConvertible Support
                     public TypeCode GetTypeCode()
                     {
-                        return _data.GetTypeCode();
+                        return ((IConvertible)_data).GetTypeCode();
                     }
 
                     public bool ToBoolean(IFormatProvider provider)
@@ -1855,17 +1670,31 @@ namespace PacMan
 
                     public string ToString(IFormatProvider provider)
                     {
-                        return _data.ToString(provider);
+                        return _data.ToString();
                     }
 
                     public object ToType(Type conversionType, IFormatProvider provider)
                     {
                         return ((IConvertible)_data).ToType(conversionType, provider);
                     }
+
+                    public override string ToString()
+                    {
+                        return base.ToString();
+                    }
+
+                    public override int GetHashCode()
+                    {
+                        return base.GetHashCode();
+                    }
+
+                    public override bool Equals(object obj)
+                    {
+                        return base.Equals(obj);
+                    }
                     #endregion IConvertible Support
 
                     #region IDisposable Support
-
                     /// <summary>
                     /// Dispose support
                     /// Free memory
@@ -1877,7 +1706,7 @@ namespace PacMan
                         {
                             if (disposing)
                             {
-                                this._data = null;
+                                this._data = default;
                                 this._array = null;
                                 this._multiArray = null;
                                 if (this._jsonNode != null)
@@ -1885,7 +1714,6 @@ namespace PacMan
                                     this._jsonNode.Dispose();
                                 }
                                 this._rank = int.MinValue;
-                                this._type = null;
                             }
 
                             _disposedValue = true;
