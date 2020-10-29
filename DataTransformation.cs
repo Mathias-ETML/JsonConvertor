@@ -1,8 +1,19 @@
+// ==++==
+// 
+//  Made by Mathias Rogey.
+//
+//  Published on https://github.com/Mathias-ETML/JsonConvertor
+//  with the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007.
+//
+//  Source code must been available when the software is ditributed.
+// 
+// ==--==
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace PacMan
+namespace JsonFileConvertor
 {
     /// <summary>
     /// Data transformation class
