@@ -661,6 +661,7 @@ namespace JsonFileConvertor
         {
             #region var
             data = data.Replace(Environment.NewLine, string.Empty);
+            data = data.Replace("\t", string.Empty);
             //data = data.Replace("\t", string.Empty);
 
             // this is ok
