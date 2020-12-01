@@ -80,12 +80,12 @@ namespace JsonFileConvertor
 
             if (array.Length == 0)
             {
-                throw new Exception("Array is empty");
+                throw new ArgumentException("Array is empty");
             }
 
-            if (array.Rank == 1)
+            if (array.Rank != 1)
             {
-                throw new Exception("Array is not multidimentional");
+                throw new ArgumentException("Array is not omnidimentional");
             }
 
             // buffer to hold the data
@@ -117,12 +117,12 @@ namespace JsonFileConvertor
 
             if (array.Length == 0)
             {
-                throw new Exception("Array is empty");
+                throw new ArgumentException("Array is empty");
             }
 
-            if (array.Rank == 1)
+            if (array.Rank != 2)
             {
-                throw new Exception("Array is not multidimentional");
+                throw new ArgumentException("Array is not multidimentional");
             }
 
             // buffer to hold the data
@@ -157,7 +157,7 @@ namespace JsonFileConvertor
 
             if (data.Length == 0)
             {
-                throw new ArgumentNullException("Data is empty");
+                throw new ArgumentException("Data is empty");
             }
 
             // here we only want the left part of the enum
@@ -187,12 +187,12 @@ namespace JsonFileConvertor
 
             if (array.Length == 0)
             {
-                throw new Exception("Array is empty");
+                throw new ArgumentException("Array is empty");
             }
 
-            if (array.Rank == 2)
+            if (array.Rank != 1)
             {
-                throw new Exception("Array is multidimentional");
+                throw new ArgumentException("Array is not omnidimentional");
             }
 
             //buffer to hold  the data
@@ -224,12 +224,12 @@ namespace JsonFileConvertor
 
             if (array.Length == 0)
             {
-                throw new Exception("Array is empty");
+                throw new ArgumentException("Array is empty");
             }
 
-            if (array.Rank == 1)
+            if (array.Rank != 2)
             {
-                throw new Exception("Array is not multidimentional");
+                throw new ArgumentException("Array is not multidimentional");
             }
 
             //buffer to hold  the data
