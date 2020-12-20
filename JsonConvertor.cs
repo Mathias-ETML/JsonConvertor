@@ -12,7 +12,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text.RegularExpressions;
 
 /*
  * TODO : Automatic data processing ( hard )
@@ -68,6 +67,14 @@ namespace JsonFileConvertor
         private List<string> _jsonNodesNamesList;
         private Dictionary<string, JsonNode> _jsonNodesNamesDico;
         private bool _disposedValue = false;
+        private Type _type;
+
+        public enum Type : byte
+        {
+            Default,
+            Secure,
+            Simple
+        }
         #endregion attributs
 
         #region Propriety
@@ -82,12 +89,14 @@ namespace JsonFileConvertor
         /// custom constructor
         /// </summary>
         /// <param name="jsonFile">the data of the json file, raw</param>
-        public JsonConvertor(string jsonFileData)
+        public JsonConvertor(string jsonFileData, Type type = Type.Default)
         {
             if (jsonFileData == null)
             {
                 throw new ArgumentNullException("jsonFileData");
             }
+
+            this._type = type;
 
             this._rawData = jsonFileData;
             this._jsonNodesList = new List<JsonNode>();
@@ -101,9 +110,9 @@ namespace JsonFileConvertor
         /// <param name="jsonFileData">the data of the json file, raw</param>
         /// <param name="nodes">the nodes you want to create</param>
         /// <param name="showError">show argument excpetion</param>
-        public JsonConvertor(string jsonFileData, string[] nodes = null, bool showError = false)
+        public JsonConvertor(string jsonFileData, Type type = Type.Default, string[] nodes = null, bool showError = false)
         {
-            if (jsonFileData == null)
+            if (jsonFileData == null)   
             {
                 throw new ArgumentNullException("jsonFileData");
             }
@@ -113,6 +122,12 @@ namespace JsonFileConvertor
                 throw new ArgumentNullException("nodes");
             }
 
+            if (type == Type.Simple)
+            {
+                throw new Exception("You shoud not use this function with a simple json file");
+            }
+
+            this._type = type;
             this._rawData = jsonFileData;
             this._jsonNodesList = new List<JsonNode>();
             this._jsonNodesNamesList = new List<string>();
@@ -127,7 +142,7 @@ namespace JsonFileConvertor
 
                 if (!TryCreateElementByName(nodes[i]) && showError)
                 {
-                    throw new ArgumentException($"A json node was note created with the name of {nodes[i]} at position {i}");
+                    throw new ArgumentException($"A json node was not created with the name of {nodes[i]} at position {i}");
                 }
             }
         }
@@ -137,7 +152,7 @@ namespace JsonFileConvertor
         /// </summary>
         /// <param name="jsonFileData">the data of the json file, raw</param>
         /// <param name="processFile">if you want to create elements automaticaly</param>
-        public JsonConvertor(string jsonFileData, bool processFile)
+        public JsonConvertor(string jsonFileData, bool processFile, Type type = Type.Default)
         {
             throw new NotImplementedException("Sorry i did not implemented this feature yet.");
             /*
@@ -154,7 +169,7 @@ namespace JsonFileConvertor
         #endregion constructors
 
         #region storing the data
-        /// <summary>
+        /// <summary>   
         /// This will create a new "node", how i like to call it, of data, it will take evrything from the id of the json file
         /// </summary>
         /// <param name="elementName">the id of the object</param>
@@ -166,6 +181,11 @@ namespace JsonFileConvertor
                 throw new ArgumentNullException("elementName");
             }
 
+            if (_type == Type.Simple)
+            {
+                throw new Exception("You should use the \"CreateSimpleNode\" Function");
+            }
+
             if (_rawData.Contains($"\"{elementName}\""))
             {
                 if (_jsonNodesNamesList.Contains(elementName))
@@ -173,23 +193,70 @@ namespace JsonFileConvertor
                     throw new ArgumentException($"Node {elementName} was allready created");
                 }
 
-                // we remove the {} at the start and the end
-                if(CleanedData(_rawData.Substring(1, _rawData.Length - 1), elementName, out string cleanedData))
+                switch (_type)
                 {
-                    JsonNode jsonNode = new JsonNode(elementName, cleanedData);
-                    this._jsonNodesList.Add(jsonNode);
-                    this._jsonNodesNamesDico.Add(elementName, jsonNode);
-                    this._jsonNodesNamesList.Add(elementName);
-                    return true;
-                }
-                else
-                {
-                    throw new ArgumentNullException("Error in JSON convertor :" +
-                        $"object \"{elementName}\" was found but not returned proprely, a null was returned");
-                }
+                    case Type.Default:
+                        CreateDefaultJsonConvertor(elementName);
+                        break;
+                    case Type.Secure:
+                        CreateSecureJsonConvertor(elementName);
+                        break;
+                    case Type.Simple:
+                        throw new Exception("You should use the \"CreateSimpleNode\" Function"); // YOU NEVER KNOW
 
+                    default:
+                        CreateDefaultJsonConvertor(elementName); // you should not be let the type be null, BAD PRACTICE !
+                        break;
+                }
+                return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// Create a secure JsonNode
+        /// </summary>
+        /// <param name="elementName">the element name</param>
+        /// <returns>if node was created</returns>
+        private JsonNode CreateSecureJsonConvertor(string elementName)
+        {
+            // we remove the {} at the start and the end
+            if (CleanedSecureData(_rawData.Substring(1, _rawData.Length - 1), elementName, out string cleanedData))
+            {
+                JsonNode jsonNode = new JsonNode(elementName, cleanedData);
+                this._jsonNodesList.Add(jsonNode);
+                this._jsonNodesNamesDico.Add(elementName, jsonNode);
+                this._jsonNodesNamesList.Add(elementName);
+                return jsonNode;
+            }
+            else
+            {
+                throw new ArgumentNullException("Error in JSON convertor :" +
+                    $"object \"{elementName}\" was found but not returned proprely, a null was returned");
+            }
+        }
+
+        /// <summary>
+        /// Create a default JsonNode
+        /// </summary>
+        /// <param name="elementName">the element name<</param>
+        /// <returns>if node was created</returns>
+        private JsonNode CreateDefaultJsonConvertor(string elementName)
+        {
+            // we remove the {} at the start and the end
+            if (CleanedDefaultData(_rawData.Substring(1, _rawData.Length - 1), elementName, out string cleanedData))
+            {
+                JsonNode jsonNode = new JsonNode(elementName, cleanedData);
+                this._jsonNodesList.Add(jsonNode);
+                this._jsonNodesNamesDico.Add(elementName, jsonNode);
+                this._jsonNodesNamesList.Add(elementName);
+                return jsonNode;
+            }
+            else
+            {
+                throw new ArgumentNullException("Error in JSON convertor :" +
+                    $"object \"{elementName}\" was found but not returned proprely, a null was returned");
+            }
         }
 
         /// <summary>
@@ -204,6 +271,11 @@ namespace JsonFileConvertor
                 throw new ArgumentNullException("elementName");
             }
 
+            if (_type == Type.Simple)
+            {
+                throw new Exception("You should use the \"CreateSimpleNode\" Function");
+            }
+
             if (_rawData.Contains($"\"{elementName}\""))
             {
                 if (_jsonNodesNamesList.Contains(elementName))
@@ -211,28 +283,28 @@ namespace JsonFileConvertor
                     throw new ArgumentException($"Node {elementName} was allready created");
                 }
 
-                // we remove the {} at the start and the end
-                if (CleanedData(_rawData.Substring(1, _rawData.Length - 1), elementName, out string cleanedData))
+                switch (_type)
                 {
-                    JsonNode jsonNode = new JsonNode(elementName, cleanedData);
-                    this._jsonNodesList.Add(jsonNode);
-                    this._jsonNodesNamesDico.Add(elementName, jsonNode);
-                    this._jsonNodesNamesList.Add(elementName);
-                    return true;
+                    case Type.Default:
+                        CreateDefaultJsonConvertor(elementName);
+                        break;
+                    case Type.Secure:
+                        CreateSecureJsonConvertor(elementName);
+                        break;
+                    case Type.Simple:
+                        break;
+                    default:
+                        CreateDefaultJsonConvertor(elementName); // you should not be let the type be null, BAD PRACTICE !
+                        break;
                 }
-                else
-                {
-                    throw new ArgumentNullException("Error in JSON convertor :" +
-                        $"object \"{elementName}\" was found but not returned proprely, a null was returned");
-                }
-
             }
             else
             {
                 throw new ArgumentException($"The JSON file doesn't contain the node \"{elementName}\"");
             }
-            
+            return false;
         }
+
         /// <summary>
         /// This will create a new "node", how i like to call it, of data, it will take evrything from the id of the json file
         /// </summary>
@@ -240,6 +312,11 @@ namespace JsonFileConvertor
         /// <returns>if the node was created</returns>
         public bool TryCreateElementByName(string elementName, out JsonNode jsonNode)
         {
+            if (_type == Type.Simple)
+            {
+                throw new Exception("You should use the \"CreateSimpleNode\" Function");
+            }
+
             if (elementName == null)
             {
                 throw new ArgumentNullException("elementName");
@@ -252,21 +329,20 @@ namespace JsonFileConvertor
                     throw new ArgumentException($"Node {elementName} was allready created");
                 }
 
-                // we remove the {} at the start and the end
-                if (CleanedData(_rawData.Substring(1, _rawData.Length - 1), elementName, out string cleanedData))
+                switch (_type)
                 {
-                    jsonNode = new JsonNode(elementName, cleanedData);
-                    this._jsonNodesList.Add(jsonNode);
-                    this._jsonNodesNamesDico.Add(elementName, jsonNode);
-                    this._jsonNodesNamesList.Add(elementName);
-                    return true;
+                    case Type.Default:
+                        CreateDefaultJsonConvertor(elementName);
+                        break;
+                    case Type.Secure:
+                        CreateSecureJsonConvertor(elementName);
+                        break;
+                    case Type.Simple:
+                        break;
+                    default:
+                        CreateDefaultJsonConvertor(elementName); // you should not be let the type be null, BAD PRACTICE !
+                        break;
                 }
-                else
-                {
-                    throw new ArgumentNullException("Error in JSON convertor :" +
-                        $"object \"{elementName}\" was found but not returned proprely, a null was returned");
-                }
-
             }
 
             jsonNode = null;
@@ -289,6 +365,11 @@ namespace JsonFileConvertor
             if (data == null)
             {
                 throw new ArgumentNullException("data");
+            }
+
+            if (_type == Type.Simple)
+            {
+                throw new Exception("You should use the \"CreateSimpleNode\" Function");
             }
 
             JsonNode jsonNode = new JsonNode(name, $"\"{data}\"");
@@ -344,6 +425,8 @@ namespace JsonFileConvertor
 
         /// <summary>
         /// Get you the data
+        /// The way it work it's that you will input all the nodes where the data is, from the first to the last
+        /// This is a good way to get a precise information about something
         /// </summary>
         /// <typeparam name="T">the type of your variable</typeparam>
         /// <param name="jsonFileRawData">the json file</param>
@@ -368,7 +451,7 @@ namespace JsonFileConvertor
                 throw new ArgumentNullException("jsonNode1");
             }
 
-            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            if (CleanedSecureData(jsonFileRawData, jsonNode1, out string buffer))
             {
                 JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
 
@@ -395,6 +478,8 @@ namespace JsonFileConvertor
 
         /// <summary>
         /// Get you the array of data
+        /// The way it work it's that you will input all the nodes where the data is, from the first to the last
+        /// This is a good way to get a precise information about something
         /// </summary>
         /// <typeparam name="T">the type of your variable</typeparam>
         /// <param name="jsonFileRawData">the json file</param>
@@ -419,7 +504,7 @@ namespace JsonFileConvertor
                 throw new ArgumentNullException("jsonNode1");
             }
 
-            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            if (CleanedSecureData(jsonFileRawData, jsonNode1, out string buffer))
             {
                 JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
 
@@ -446,6 +531,8 @@ namespace JsonFileConvertor
 
         /// <summary>
         /// Get you the multidimentional array of data
+        /// The way it work it's that you will input all the nodes where the data is, from the first to the last
+        /// This is a good way to get a precise information about something
         /// </summary>
         /// <typeparam name="T">the type of your variable</typeparam>
         /// <param name="jsonFileRawData">the json file</param>
@@ -470,7 +557,7 @@ namespace JsonFileConvertor
                 throw new ArgumentNullException("jsonNode1");
             }
 
-            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            if (CleanedSecureData(jsonFileRawData, jsonNode1, out string buffer))
             {
                 JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
 
@@ -497,6 +584,8 @@ namespace JsonFileConvertor
 
         /// <summary>
         /// Get you the enum you want !
+        /// The way it work it's that you will input all the nodes where the data is, from the first to the last
+        /// This is a good way to get a precise information about something
         /// </summary>
         /// <typeparam name="Enum">the enum</typeparam>
         /// <param name="jsonFileRawData">the raw json file</param>
@@ -521,7 +610,7 @@ namespace JsonFileConvertor
                 throw new ArgumentNullException("jsonNode1");
             }
 
-            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            if (CleanedSecureData(jsonFileRawData, jsonNode1, out string buffer))
             {
                 JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
 
@@ -548,6 +637,8 @@ namespace JsonFileConvertor
 
         /// <summary>
         /// Get you the array of enum you want !
+        /// The way it work it's that you will input all the nodes where the data is, from the first to the last
+        /// This is a good way to get a precise information about something
         /// </summary>
         /// <typeparam name="Enum">the enum</typeparam>
         /// <param name="jsonFileRawData">the raw json file</param>
@@ -572,7 +663,7 @@ namespace JsonFileConvertor
                 throw new ArgumentNullException("jsonNode1");
             }
 
-            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            if (CleanedSecureData(jsonFileRawData, jsonNode1, out string buffer))
             {
                 JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
 
@@ -599,6 +690,8 @@ namespace JsonFileConvertor
 
         /// <summary>
         /// Get you the multidimentional array of enum you want !
+        /// The way it work it's that you will input all the nodes where the data is, from the first to the last
+        /// This is a good way to get a precise information about something
         /// </summary>
         /// <typeparam name="Enum">the enum</typeparam>
         /// <param name="jsonFileRawData">the raw json file</param>
@@ -623,7 +716,7 @@ namespace JsonFileConvertor
                 throw new ArgumentNullException("jsonNode1");
             }
 
-            if (CleanedData(jsonFileRawData, jsonNode1, out string buffer))
+            if (CleanedSecureData(jsonFileRawData, jsonNode1, out string buffer))
             {
                 JsonNode jsonNode = new JsonNode(jsonNode1, buffer);
 
@@ -649,20 +742,15 @@ namespace JsonFileConvertor
         }
         #endregion getting the data
 
-        #region data processing
         /// <summary>
-        /// Clean the data do you have a more friends string of char
+        /// Clean the data
         /// </summary>
-        /// <param name="data">raw data</param>
-        /// <param name="id">the name ob the object</param>
-        /// <param name="buffer">the output</param>
-        /// <returns>if the retrive was sucessfull</returns>
-        private static bool CleanedData(string data, string id, out string buffer)
+        /// <param name="data">the data</param>
+        /// <returns>the data</returns>
+        private static string CleanData(string data)
         {
-            #region var
             data = data.Replace(Environment.NewLine, string.Empty);
             data = data.Replace("\t", string.Empty);
-            //data = data.Replace("\t", string.Empty);
 
             // this is ok
             while (data.Contains("  "))
@@ -685,6 +773,22 @@ namespace JsonFileConvertor
 
             data = data.Replace(" ,", ",");
             data = data.Replace(" :", ":");
+
+            return data;
+        }
+
+        #region data processing
+        /// <summary>
+        /// Clean the data
+        /// </summary>
+        /// <param name="data">raw data</param>
+        /// <param name="id">the name of the object</param>
+        /// <param name="buffer">the output</param>
+        /// <returns>if the retrive was sucessfull</returns>
+        private static bool CleanedSecureData(string data, string id, out string buffer)
+        {
+            #region var
+            data = CleanData(data);
 
             int start = data.IndexOf(id) - 1;
 
@@ -729,6 +833,51 @@ namespace JsonFileConvertor
             buffer = null;
             return false;
         }
+
+        /// <summary>
+        /// Clean the data
+        /// </summary>
+        /// <param name="data">raw data</param>
+        /// <param name="id">the name of the object</param>
+        /// <param name="buffer">the output</param>
+        /// <returns>if the retrive was sucessfull</returns>
+        private static bool CleanedDefaultData(string data, string id, out string buffer)
+        {
+            data = CleanData(data);
+            buffer = null;
+
+            int start = data.IndexOf(id) - 1;
+            
+            int startCurlyBracketCount = 0;
+            int endCurlyBracketCount = 0;
+
+            #region algo
+            for (int i = start; i < data.Length; i++)
+            {
+                switch (data[i])
+                {
+                    case '{':
+                        startCurlyBracketCount++;
+                        break;
+                    case '}':
+                        endCurlyBracketCount++;
+
+                        // here we know that a object will always have the same number of opened and closed bracket
+                        if (startCurlyBracketCount == endCurlyBracketCount)
+                        {
+                            buffer = data.Substring(start, i - start + 1);
+                            return true;
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            #endregion algo
+
+            return false;
+        }
         #endregion data processing
 
         #region JsonNode class
@@ -748,10 +897,12 @@ namespace JsonFileConvertor
             private List<JsonData> _jsonDatasList;
             private Dictionary<string, JsonData> _jsonDataNamesDico;
             private List<string> _jsonDataNamesList;
+            private Type _type;
 
             private Dictionary<string, JsonNode> _jsonNodesNamesDico;
             private List<string> _jsonNodesNamesList;
             private bool _disposedValue = false;
+            
             #endregion Attributs
 
             #region Propriety
@@ -769,7 +920,7 @@ namespace JsonFileConvertor
             /// </summary>
             /// <param name="data">the data of the original json file</param>
             /// <param name="id">the id of the object</param>
-            public JsonNode(string name, string data)
+            public JsonNode(string name, string data, Type type = Type.Default)
             {
                 if (name == null)
                 {
@@ -781,6 +932,7 @@ namespace JsonFileConvertor
                     throw new ArgumentNullException("data");
                 }
 
+                this._type = type;
                 this._rawData = data;
                 this._name = name;
                 this._jsonDatasList = new List<JsonData>();
@@ -1042,7 +1194,15 @@ namespace JsonFileConvertor
                 string buffer = _rawData.Substring(_name.Length + 2, _rawData.Length - _name.Length - 2);
 
                 // removing the :[{}] that make this an object
-                buffer = buffer.Substring(3, buffer.Length - 5);
+                if (_type == Type.Secure)
+                {
+                    buffer = buffer.Substring(3, buffer.Length - 5);
+                }
+                else
+                {
+                    buffer = buffer.Substring(2, buffer.Length - 3);
+                }
+
 
                 int nameStart = 0;
                 int nameEnd = 0;
@@ -1140,7 +1300,17 @@ namespace JsonFileConvertor
                                     is2DArray = false;
                                 }
                             }
-                            else if (startBracketCount == endBracketCount && startCurlyBracketCount == endCurlyBracketCount)
+
+                            break;
+
+                        case '{':
+                            startCurlyBracketCount++;
+                            break;
+
+                        case '}':
+                            endCurlyBracketCount++;
+
+                            if (startCurlyBracketCount == endCurlyBracketCount && _type == Type.Default)
                             {
                                 // the +1 is because we need the ] at the end of the object and the "
                                 JsonNode jsonNode = new JsonNode(buffer.Substring(nameStart, i - nameStart + 1), buffer.Substring(nameStart, nameEnd - nameStart + 1));
@@ -1156,14 +1326,6 @@ namespace JsonFileConvertor
                                 dataStart = 0;
                                 isObject = false;
                             }
-                            break;
-
-                        case '{':
-                            startCurlyBracketCount++;
-                            break;
-
-                        case '}':
-                            endCurlyBracketCount++;
                             break;
 
                         case '\"':
@@ -1411,7 +1573,7 @@ namespace JsonFileConvertor
             /// <summary>
             /// Json data class
             /// </summary>
-            public class JsonData : IDisposable
+            public class JsonData : IDisposable, IConvertible, IEquatable<JsonData>
             {
                 #region Attributs   
                 /// <summary>
@@ -1674,7 +1836,7 @@ namespace JsonFileConvertor
                         return _data.ToString();
                     }
 
-                    public object ToType(Type conversionType, IFormatProvider provider)
+                    public object ToType(System.Type conversionType, IFormatProvider provider)
                     {
                         return ((IConvertible)_data).ToType(conversionType, provider);
                     }
@@ -1763,6 +1925,101 @@ namespace JsonFileConvertor
                     GC.SuppressFinalize(this);
                 }
                 #endregion IDisposable Support
+
+                #region IConvertible support
+                public TypeCode GetTypeCode()
+                {
+
+                    return ((IConvertible)_data).GetTypeCode();
+                }
+
+                public bool ToBoolean(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToBoolean(provider);
+                }
+
+                public char ToChar(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToChar(provider);
+                }
+
+                public sbyte ToSByte(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToSByte(provider);
+                }
+
+                public byte ToByte(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToByte(provider);
+                }
+
+                public short ToInt16(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToInt16(provider);
+                }
+
+                public ushort ToUInt16(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToUInt16(provider);
+                }
+
+                public int ToInt32(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToInt32(provider);
+                }
+
+                public uint ToUInt32(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToUInt32(provider);
+                }
+
+                public long ToInt64(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToInt64(provider);
+                }
+
+                public ulong ToUInt64(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToUInt64(provider);
+                }
+
+                public float ToSingle(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToSingle(provider);
+                }
+
+                public double ToDouble(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToDouble(provider);
+                }
+
+                public decimal ToDecimal(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToDecimal(provider);
+                }
+
+                public DateTime ToDateTime(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToDateTime(provider);
+                }
+
+                public string ToString(IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToString(provider);
+                }
+
+                public object ToType(System.Type conversionType, IFormatProvider provider)
+                {
+                    return ((IConvertible)_data).ToType(conversionType, provider);
+                }
+                #endregion IConvertible support
+
+                #region IEquatable<JsonData>
+                public bool Equals(JsonData other)
+                {
+                    return this._data == other._data && this._name == other._name;
+                }
+                #endregion IEquatable<JsonData>
             }
             #endregion Json data class
 
@@ -1826,12 +2083,12 @@ namespace JsonFileConvertor
                     {
                         item.Dispose();
                     }
-
-                    this._rawData = null;
-                    this._jsonNodesList = null;
-                    this._jsonNodesNamesDico = null;
-                    this._jsonNodesNamesList = null;
                 }
+
+                this._rawData = null;
+                this._jsonNodesList = null;
+                this._jsonNodesNamesDico = null;
+                this._jsonNodesNamesList = null;
 
                 _disposedValue = true;
             }
